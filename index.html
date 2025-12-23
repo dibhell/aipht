@@ -291,6 +291,34 @@
       margin: 0;
     }
 
+    .models-panel {
+      margin: 6px 0 0;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(72, 170, 186, 0.22);
+      background: rgba(4, 12, 15, 0.85);
+      color: #bfe6ee;
+    }
+
+    .models-panel summary {
+      cursor: pointer;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: #86c4cf;
+      margin-bottom: 6px;
+    }
+
+    .models-output {
+      margin: 6px 0 0;
+      max-height: 160px;
+      overflow: auto;
+      font-size: 0.74rem;
+      line-height: 1.45;
+      color: #b7e5ee;
+      white-space: pre-wrap;
+    }
+
     .btn-row {
       display: flex;
       flex-wrap: wrap;
@@ -531,15 +559,21 @@
             </div>
             <div class="field-group">
               <label for="api_model">Nazwa modelu</label>
-              <input type="text" id="api_model" placeholder="np. gpt-4o-mini, gemini-1.5-flash" />
+              <input type="text" id="api_model" list="modelList" placeholder="np. gpt-4o-mini, gemini-1.5-flash-001" />
+              <datalist id="modelList"></datalist>
             </div>
           </div>
           <div class="btn-row compact">
             <button id="btnPresetOpenAi" type="button">Preset: OpenAI</button>
             <button id="btnPresetGemini" type="button">Preset: Gemini</button>
             <button id="btnPresetClear" type="button">Wyczyść API</button>
+            <button id="btnListModels" type="button">Lista modeli</button>
           </div>
           <p class="hint" id="providerHint"></p>
+          <details class="models-panel" id="modelsPanel">
+            <summary>Modele Gemini (generateContent)</summary>
+            <pre class="models-output" id="modelsOutput">Kliknij "Lista modeli", aby pobrać dostępne nazwy modeli.</pre>
+          </details>
           <div class="field-group">
             <label for="api_base_url">Base URL API</label>
             <input type="text" id="api_base_url" placeholder="https://api.openai.com" />
@@ -847,7 +881,11 @@
     const btnPresetOpenAi = document.getElementById("btnPresetOpenAi");
     const btnPresetGemini = document.getElementById("btnPresetGemini");
     const btnPresetClear = document.getElementById("btnPresetClear");
+    const btnListModels = document.getElementById("btnListModels");
     const providerHint = document.getElementById("providerHint");
+    const modelsPanel = document.getElementById("modelsPanel");
+    const modelsOutput = document.getElementById("modelsOutput");
+    const modelList = document.getElementById("modelList");
 
     const gc_scene_description = document.getElementById("gc_scene_description");
     const gc_time_of_day = document.getElementById("gc_time_of_day");
@@ -1161,7 +1199,6 @@
       }
     }
 
-    const LEGACY_GOOGLE_BASE = "https://generativelanguage.googleapis.com/v1beta";
     const PROVIDER_DEFAULTS = {
       openai: {
         base: "https://api.openai.com",
@@ -1173,11 +1210,11 @@
         keyPlaceholder: "sk-...",
       },
       google: {
-        base: "https://generativelanguage.googleapis.com/v1",
+        base: "https://generativelanguage.googleapis.com/v1beta",
         desc: "",
         image: "",
-        model: "gemini-1.5-flash",
-        descPlaceholder: "models/gemini-1.5-flash:generateContent",
+        model: "gemini-1.5-flash-001",
+        descPlaceholder: "models/gemini-1.5-flash-001:generateContent",
         imagePlaceholder: "(opcjonalnie)",
         keyPlaceholder: "AIza...",
       },
@@ -1230,7 +1267,7 @@
       if (!providerHint) return;
       if (provider === "google") {
         providerHint.innerHTML =
-          'Gemini: base <code>https://generativelanguage.googleapis.com/v1</code> i endpoint <code>models/gemini-1.5-flash:generateContent</code>. Klucz dodawany jest jako <code>?key=</code>. Jeśli dostajesz 404, spróbuj <code>gemini-1.5-flash-001</code> lub base <code>/v1beta</code>.';
+          'Gemini: base <code>https://generativelanguage.googleapis.com/v1beta</code> i endpoint <code>models/gemini-1.5-flash-001:generateContent</code>. Klucz dodawany jest jako <code>?key=</code>. Jeśli dostajesz 404, kliknij <code>Lista modeli</code> i wybierz nazwę z listy.';
       } else {
         providerHint.innerHTML =
           'OpenAI: base <code>https://api.openai.com</code> i endpoint <code>/v1/responses</code> (zalecane) lub <code>/v1/chat/completions</code>.';
@@ -1262,6 +1299,97 @@
       if (api_key && defaults.keyPlaceholder) api_key.placeholder = defaults.keyPlaceholder;
 
       updateProviderHint(provider);
+      toggleModelsPanel(provider);
+    }
+
+    function toggleModelsPanel(provider) {
+      if (!modelsPanel) return;
+      const isGoogle = provider === "google";
+      modelsPanel.style.display = isGoogle ? "block" : "none";
+      if (!isGoogle && modelsOutput) {
+        modelsOutput.textContent =
+          'Lista modeli jest dostępna tylko dla Gemini. Ustaw "Dostawca API" na Google Gemini.';
+      }
+    }
+
+    function updateModelList(items) {
+      if (!modelList) return;
+      modelList.innerHTML = "";
+      const seen = new Set();
+      items.forEach((item) => {
+        const value = item.shortName || item.name || "";
+        if (!value || seen.has(value)) return;
+        seen.add(value);
+        const opt = document.createElement("option");
+        opt.value = value;
+        modelList.appendChild(opt);
+      });
+    }
+
+    async function listGeminiModels() {
+      if (!modelsOutput) return;
+      const provider = (api_provider && api_provider.value) || "openai";
+      if (provider !== "google") {
+        modelsOutput.textContent =
+          'Lista modeli jest dostępna tylko dla Gemini. Ustaw "Dostawca API" na Google Gemini.';
+        if (modelsPanel) modelsPanel.open = true;
+        return;
+      }
+
+      const apiKey = (api_key && api_key.value || "").trim();
+      if (!apiKey) {
+        modelsOutput.textContent = "Podaj API key, aby pobrać listę modeli.";
+        if (modelsPanel) modelsPanel.open = true;
+        return;
+      }
+
+      const baseValue = normalizeUrl(api_base_url && api_base_url.value) || PROVIDER_DEFAULTS.google.base;
+      let url = baseValue;
+      if (!/\/models$/i.test(url)) {
+        url = url + "/models";
+      }
+      url = withGoogleKey(url, apiKey);
+
+      modelsOutput.textContent = "Pobieram listę modeli...";
+      if (modelsPanel) modelsPanel.open = true;
+      try {
+        const res = await fetch(url, { method: "GET" });
+        if (!res.ok) {
+          let extra = "";
+          try {
+            extra = await res.text();
+          } catch (_) {}
+          throw new Error("API error " + res.status + (extra ? ": " + extra : ""));
+        }
+        const data = await res.json();
+        const models = Array.isArray(data.models) ? data.models : [];
+        const generateModels = models.filter(
+          (m) =>
+            Array.isArray(m.supportedGenerationMethods) &&
+            m.supportedGenerationMethods.includes("generateContent")
+        );
+        const list = (generateModels.length ? generateModels : models).map((m) => {
+          const name = m.name || "";
+          const shortName = name.replace(/^models\//, "");
+          return {
+            name,
+            shortName,
+            displayName: m.displayName || "",
+          };
+        });
+        if (!list.length) {
+          modelsOutput.textContent = "Brak modeli w odpowiedzi API.";
+          updateModelList([]);
+          return;
+        }
+        const lines = list.map((m) =>
+          m.displayName ? m.shortName + " — " + m.displayName : m.shortName
+        );
+        modelsOutput.textContent = lines.join("\n");
+        updateModelList(list);
+      } catch (e) {
+        modelsOutput.textContent = e.message || String(e);
+      }
     }
 
     function getApiConfig() {
@@ -1332,12 +1460,6 @@
         }
       } catch (_) {}
       provider = (api_provider && api_provider.value) || provider;
-      if (provider === "google") {
-        const base = normalizeUrl(api_base_url && api_base_url.value);
-        if (base === LEGACY_GOOGLE_BASE) {
-          api_base_url.value = PROVIDER_DEFAULTS.google.base;
-        }
-      }
       applyProviderDefaults(provider, { force: false });
     }
 
@@ -1708,6 +1830,12 @@
       });
     }
 
+    if (btnListModels) {
+      btnListModels.addEventListener("click", () => {
+        listGeminiModels();
+      });
+    }
+
     if (api_provider) {
       api_provider.addEventListener("change", () => {
         const provider = api_provider.value || "openai";
@@ -1838,6 +1966,8 @@
 
     (function init() {
       loadApiConfigFromStorage();
+      const provider = (api_provider && api_provider.value) || "openai";
+      toggleModelsPanel(provider);
 
       const pretty = JSON.stringify(templateObj, null, 2);
       jsonInput.value = pretty;
