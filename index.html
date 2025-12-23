@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Generator opisów sceny - JSON</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;700&family=JetBrains+Mono:wght@400;600&family=Sora:wght@300;400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f1e7;
+      --bg-accent: #fcead6;
+      --ink: #1f2430;
+      --muted: #5c6270;
+      --panel: #fffaf3;
+      --panel-strong: #fff1e1;
+      --border: rgba(31, 36, 48, 0.12);
+      --accent: #ff7a59;
+      --accent-2: #2a9d8f;
+      --accent-3: #f2b13f;
+      --focus: #2a9d8f;
+      --shadow: 0 20px 40px rgba(30, 37, 54, 0.12);
+      --mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas,
+        "Liberation Mono", monospace;
+      --sans: "Sora", "Segoe UI", system-ui, sans-serif;
+      --serif: "Fraunces", "Times New Roman", serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(255, 179, 140, 0.35), transparent 45%),
+        radial-gradient(circle at 80% 20%, rgba(42, 157, 143, 0.2), transparent 40%),
+        linear-gradient(140deg, #f6f1e7 0%, #fef8f1 55%, #f7ede0 100%);
+      color: var(--ink);
+      font-family: var(--sans);
+      display: flex;
+      justify-content: center;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -10% -20% auto auto;
+      width: 45vw;
+      height: 45vw;
+      background: radial-gradient(circle, rgba(42, 157, 143, 0.18), transparent 70%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      left: -10%;
+      bottom: -20%;
+      width: 50vw;
+      height: 50vw;
+      background: radial-gradient(circle, rgba(255, 122, 89, 0.2), transparent 70%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      padding: 32px 20px 28px;
+      gap: 20px;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: rise 700ms ease-out both;
+    }
+
+    .eyebrow {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.28em;
+      color: var(--accent-2);
+      font-weight: 600;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      margin: 0;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 0.98rem;
+      color: var(--muted);
+      max-width: 720px;
+      line-height: 1.5;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      background: rgba(42, 157, 143, 0.1);
+      border: 1px solid rgba(42, 157, 143, 0.25);
+      color: #1b4d46;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .panel {
+      background: linear-gradient(180deg, #ffffff 0%, #fff9f2 100%);
+      border-radius: 20px;
+      padding: 16px 16px 18px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      animation: rise 700ms ease-out both;
+    }
+
+    .layout .panel:nth-child(1) {
+      animation-delay: 120ms;
+    }
+
+    .layout .panel:nth-child(2) {
+      animation-delay: 220ms;
+    }
+
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(255, 122, 89, 0.08), transparent 55%);
+      pointer-events: none;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .badge {
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(42, 157, 143, 0.12);
+      border: 1px solid rgba(42, 157, 143, 0.22);
+      color: #1b4d46;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    .form-scroll {
+      overflow: auto;
+      max-height: calc(100vh - 240px);
+      padding-right: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    @media (max-width: 1100px) {
+      .form-scroll {
+        max-height: none;
+      }
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      margin-top: 10px;
+      font-weight: 600;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    label {
+      font-size: 0.78rem;
+      color: #2e3441;
+      font-weight: 600;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    textarea,
+    select,
+    .textarea-small {
+      width: 100%;
+      border-radius: 12px;
+      padding: 8px 12px;
+      border: 1px solid rgba(31, 36, 48, 0.16);
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.8rem;
+      outline: none;
+      transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
+    }
+
+    input[type="text"],
+    select {
+      height: 34px;
+    }
+
+    textarea {
+      min-height: 58px;
+      resize: vertical;
+      font-family: var(--sans);
+      line-height: 1.4;
+    }
+
+    .textarea-mono {
+      font-family: var(--mono);
+      white-space: pre;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 2px rgba(42, 157, 143, 0.2);
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #6b7280;
+      margin: 0;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn-row.compact button {
+      padding: 6px 12px;
+      font-size: 0.74rem;
+    }
+
+    button {
+      border-radius: 999px;
+      border: 1px solid rgba(31, 36, 48, 0.12);
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--ink);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 120ms ease-out, box-shadow 120ms ease-out, background 120ms ease-out,
+        border-color 120ms ease-out;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 55%, var(--accent-3) 100%);
+      border-color: rgba(31, 36, 48, 0.08);
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(255, 122, 89, 0.25);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 20px rgba(31, 36, 48, 0.16);
+      background: #fff;
+    }
+
+    button.primary:hover {
+      box-shadow: 0 16px 28px rgba(255, 122, 89, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .status {
+      font-size: 0.78rem;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(42, 157, 143, 0.08);
+      border: 1px solid rgba(42, 157, 143, 0.18);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status span.key {
+      opacity: 0.7;
+    }
+
+    .status span.val-ok {
+      color: #16a34a;
+    }
+
+    .status span.val-error {
+      color: #dc2626;
+    }
+
+    .status small {
+      opacity: 0.7;
+      font-size: 0.72rem;
+    }
+
+    .json-editor-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    #jsonInput {
+      width: 100%;
+      min-height: 220px;
+      max-height: 260px;
+      resize: vertical;
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(31, 36, 48, 0.16);
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.45;
+      outline: none;
+      tab-size: 2;
+      white-space: pre;
+      overflow: auto;
+      transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
+    }
+
+    #jsonInput:focus {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 2px rgba(42, 157, 143, 0.2);
+    }
+
+    .preview-box {
+      font-size: 0.8rem;
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(31, 36, 48, 0.12);
+      max-height: 220px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .preview-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .preview-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .preview-row span {
+      font-size: 0.78rem;
+      color: #4b5563;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .preview-row span.key {
+      opacity: 0.65;
+    }
+
+    footer {
+      font-size: 0.75rem;
+      color: #6b7280;
+      text-align: right;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      background: rgba(42, 157, 143, 0.12);
+      padding: 0 4px;
+      border-radius: 4px;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <span class="eyebrow">Studio promptów AI</span>
+      <h1>Generator opisów sceny</h1>
+      <p class="subtitle">
+        Wypełnij formularz albo edytuj surowy JSON. Na końcu wyeksportuj gotowy plik <code>scene.json</code> i użyj go w silniku grafiki AI.
+      </p>
+      <div class="chip-row">
+        <span class="chip">JSON-first</span>
+        <span class="chip">Presety API</span>
+        <span class="chip">GitHub Pages ready</span>
+      </div>
+    </header>
+
+    <section class="layout">
+      <!-- LEWY PANEL: formularz -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Formularz sceny</div>
+          <span class="badge">form-based</span>
+        </div>
+        <div class="form-scroll">
+          <!-- AI ASSIST -->
+          <div class="section-label">AI assist</div>
+          <div class="field-group">
+            <label for="ai_prompt">Krótki opis sceny (dla AI)</label>
+            <textarea id="ai_prompt" rows="3" placeholder="np. Młoda dziewczyna z tatuażem lwa na klatce piersiowej w czasie festiwalu..."></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="ai_image">Zdjęcie sceny (opcjonalnie)</label>
+              <input type="file" id="ai_image" accept="image/*" />
+              <p class="hint">OpenAI: obraz trafia jako base64 w tekście (bez vision). Gemini: wysyłany jako inline_data.</p>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button id="btnAiFromPrompt" type="button">AI: scena z opisu</button>
+            <button id="btnAiFromImage" type="button">AI: scena ze zdjęcia</button>
+          </div>
+
+          <div class="section-label">AI API config</div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="api_provider">Dostawca API</label>
+              <select id="api_provider">
+                <option value="openai">OpenAI / kompatybilne (Chat / Responses)</option>
+                <option value="google">Google Gemini</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="api_model">Nazwa modelu</label>
+              <input type="text" id="api_model" placeholder="np. gpt-4o-mini, gemini-1.5-flash" />
+            </div>
+          </div>
+          <div class="btn-row compact">
+            <button id="btnPresetOpenAi" type="button">Preset: OpenAI</button>
+            <button id="btnPresetGemini" type="button">Preset: Gemini</button>
+            <button id="btnPresetClear" type="button">Wyczyść API</button>
+          </div>
+          <p class="hint" id="providerHint"></p>
+          <div class="field-group">
+            <label for="api_base_url">Base URL API</label>
+            <input type="text" id="api_base_url" placeholder="https://api.openai.com" />
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="api_desc_path">Endpoint dla opisu sceny</label>
+              <input type="text" id="api_desc_path" placeholder="/v1/responses" />
+            </div>
+            <div class="field-group">
+              <label for="api_image_path">Endpoint dla sceny ze zdjęcia</label>
+              <input type="text" id="api_image_path" placeholder="(opcjonalnie)" />
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="api_key">API key</label>
+            <input type="text" id="api_key" placeholder="sk-... lub AIza..." />
+          </div>
+          <p class="hint">Frontend wysyła <code>POST</code> z JSON-em w formacie OpenAI Responses/Chat lub Gemini. Ustawienia są zapisywane w <code>localStorage</code>.</p>
+
+          <!-- GLOBAL CONTEXT -->
+          <div class="section-label">Global context</div>
+          <div class="field-group">
+            <label for="gc_scene_description">Opis sceny</label>
+            <textarea id="gc_scene_description"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="gc_time_of_day">Pora dnia</label>
+              <input type="text" id="gc_time_of_day" />
+            </div>
+            <div class="field-group">
+              <label for="gc_weather_atmosphere">Atmosfera / otoczenie</label>
+              <input type="text" id="gc_weather_atmosphere" />
+            </div>
+          </div>
+
+          <div class="section-label">Lighting</div>
+          <div class="field-group">
+            <label for="lt_source">Source</label>
+            <input type="text" id="lt_source" />
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="lt_direction">Direction</label>
+              <input type="text" id="lt_direction" />
+            </div>
+            <div class="field-group">
+              <label for="lt_quality">Quality</label>
+              <input type="text" id="lt_quality" />
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="lt_color_temp">Color temperature</label>
+            <input type="text" id="lt_color_temp" />
+          </div>
+
+          <!-- COLOR PALETTE -->
+          <div class="section-label">Color palette</div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="cp_dominant">Dominujące kolory (HEX, każdy w nowej linii)</label>
+              <textarea id="cp_dominant" class="textarea-mono" rows="4"></textarea>
+            </div>
+            <div class="field-group">
+              <label for="cp_accent">Kolory akcentów (HEX, każdy w nowej linii)</label>
+              <textarea id="cp_accent" class="textarea-mono" rows="4"></textarea>
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="cp_contrast">Poziom kontrastu</label>
+            <input type="text" id="cp_contrast" />
+          </div>
+
+          <!-- CAMERA DETAILS -->
+          <div class="section-label">Camera details</div>
+          <div class="field-group">
+            <label for="cd_camera_model">Model aparatu / telefonu</label>
+            <input type="text" id="cd_camera_model" />
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="cd_focal_length">Focal length</label>
+              <input type="text" id="cd_focal_length" />
+            </div>
+            <div class="field-group">
+              <label for="cd_aperture">Aperture</label>
+              <input type="text" id="cd_aperture" />
+            </div>
+            <div class="field-group">
+              <label for="cd_iso">ISO</label>
+              <input type="text" id="cd_iso" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="cd_shutter">Shutter speed</label>
+              <input type="text" id="cd_shutter" />
+            </div>
+            <div class="field-group">
+              <label for="cd_white_balance">White balance</label>
+              <input type="text" id="cd_white_balance" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="cd_flash_type">Flash type</label>
+              <input type="text" id="cd_flash_type" />
+            </div>
+            <div class="field-group">
+              <label for="cd_image_format">Image format</label>
+              <input type="text" id="cd_image_format" />
+            </div>
+            <div class="field-group">
+              <label for="cd_color_profile">Color profile</label>
+              <input type="text" id="cd_color_profile" />
+            </div>
+          </div>
+
+          <!-- COMPOSITION -->
+          <div class="section-label">Composition</div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="comp_angle">Camera angle</label>
+              <input type="text" id="comp_angle" />
+            </div>
+            <div class="field-group">
+              <label for="comp_framing">Framing</label>
+              <input type="text" id="comp_framing" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="comp_dof">Depth of field</label>
+              <input type="text" id="comp_dof" />
+            </div>
+            <div class="field-group">
+              <label for="comp_focal_point">Focal point</label>
+              <input type="text" id="comp_focal_point" />
+            </div>
+          </div>
+
+          <!-- RELACJE SEMANTYCZNE -->
+          <div class="section-label">Semantic relationships</div>
+          <div class="field-group">
+            <label for="sem_rel">Każda relacja w osobnej linii</label>
+            <textarea id="sem_rel" rows="4"></textarea>
+          </div>
+
+          <!-- OBJECTS -->
+          <div class="section-label">Objects (pełne JSON array)</div>
+          <div class="field-group">
+            <label for="objects_json">Tablica <code>objects</code> jako JSON. Możesz ją tu edytować dowolnie.</label>
+            <textarea id="objects_json" class="textarea-mono" rows="12"></textarea>
+          </div>
+
+          <div class="btn-row">
+            <button id="btnApplyForm" type="button" class="primary">Zastosuj formularz → JSON</button>
+            <button id="btnLoadFormFromJson" type="button">Wczytaj formularz z JSON</button>
+          </div>
+          <p class="hint">Formularz aktualizuje strukturę obiektu, a edytor JSON zawsze pokazuje aktualny stan.</p>
+        </div>
+      </section>
+
+      <!-- PRAWY PANEL: JSON + podgląd -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Edytor JSON + eksport</div>
+          <span class="badge">json-based</span>
+        </div>
+        <div class="json-editor-wrapper">
+          <textarea id="jsonInput" spellcheck="false"></textarea>
+          <p class="hint">
+            Możesz edytować strukturę ręcznie. Użyj przycisku "Wczytaj formularz z JSON", żeby zsynchronizować formularz z tym, co jest tutaj.
+          </p>
+          <div class="btn-row">
+            <button id="btnFormat" type="button">Formatuj JSON</button>
+            <button id="btnValidate" type="button">Sprawdź poprawność</button>
+            <button id="btnReset" type="button">Przywróć szablon</button>
+            <button id="btnDownload" class="primary" type="button">Pobierz jako scene.json</button>
+          </div>
+          <div id="status" class="status">
+            <span class="key">Status:</span>
+            <span id="statusText" class="val-error">Nie sprawdzono</span>
+            <small id="statusDetails"></small>
+          </div>
+          <div class="preview-box" id="previewBox">
+            <div class="preview-title">JSON wczytany z szablonu. Kliknij "Sprawdź" aby wygenerować podgląd.</div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <footer>
+      Uwaga: klucze API są zapisywane lokalnie w <code>localStorage</code> i widoczne w przeglądarce. Na GH Pages nie da się ich ukryć — używaj kluczy testowych.
+    </footer>
+  </main>
+
+  <script>
+    // Minimalny szablon sceny - uproszczony, żeby kod był lżejszy
+    const templateObj = {
+      global_context: {
+        scene_description: "Sample scene description",
+        time_of_day: "Night",
+        weather_atmosphere: "Indoor, club",
+        lighting: {
+          source: "Neon lights + smartphone flash",
+          direction: "Front",
+          quality: "Hard",
+          color_temp: "Mixed cool/warm",
+        },
+      },
+      color_palette: {
+        dominant_hex_estimates: ["#9B111E", "#0000FF"],
+        accent_colors: ["#C0C0C0"],
+        contrast_level: "High",
+      },
+      camera_details: {
+        camera_model: "Smartphone",
+        Sensor_Type: "CMOS",
+        Effective_Resolution: "12 MP",
+        lens: "Wide",
+        aperture: "f/1.8",
+        iso: "800",
+        shutter_speed: "1/60s",
+        focal_length: "24mm",
+        white_balance: "Auto",
+        flash_type: "LED",
+        image_format: "JPEG",
+        color_profile: "sRGB",
+      },
+      composition: {
+        camera_angle: "Eye level",
+        framing: "Medium shot",
+        depth_of_field: "Shallow",
+        focal_point: "Subject's face",
+      },
+      objects: [
+        {
+          id: "obj_001",
+          label: "Subject",
+          category: "Person",
+          location: "Center",
+          prominence: "Primary",
+          visual_attributes: {
+            color: "Skin tone",
+            texture: "Smooth",
+            material: "Organic",
+            state: "Dancing",
+            dimensions_relative: "60% of frame",
+          },
+          micro_details: ["Makeup"],
+          pose_or_orientation: "Facing camera",
+        },
+        {
+          id: "obj_002",
+          label: "Background crowd",
+          category: "People",
+          location: "Background",
+          prominence: "Low",
+          visual_attributes: {
+            color: "Dark silhouettes",
+            texture: "Blurred",
+            material: "N/A",
+            state: "Dancing",
+            dimensions_relative: "Rest of frame",
+          },
+          micro_details: [],
+          pose_or_orientation: "Various",
+        },
+      ],
+      text_ocr: {
+        present: false,
+        content: [],
+      },
+      semantic_relationships: [
+        "Subject is dancing in front of the crowd",
+        "Neon lights illuminate the scene",
+      ],
+    };
+
+    let currentScene = JSON.parse(JSON.stringify(templateObj));
+
+    const jsonInput = document.getElementById("jsonInput");
+    const btnFormat = document.getElementById("btnFormat");
+    const btnValidate = document.getElementById("btnValidate");
+    const btnReset = document.getElementById("btnReset");
+    const btnDownload = document.getElementById("btnDownload");
+    const btnApplyForm = document.getElementById("btnApplyForm");
+    const btnLoadFormFromJson = document.getElementById("btnLoadFormFromJson");
+    const statusText = document.getElementById("statusText");
+    const statusDetails = document.getElementById("statusDetails");
+    const previewBox = document.getElementById("previewBox");
+
+    const ai_prompt = document.getElementById("ai_prompt");
+    const ai_image = document.getElementById("ai_image");
+    const btnAiFromPrompt = document.getElementById("btnAiFromPrompt");
+    const btnAiFromImage = document.getElementById("btnAiFromImage");
+    const api_base_url = document.getElementById("api_base_url");
+    const api_desc_path = document.getElementById("api_desc_path");
+    const api_image_path = document.getElementById("api_image_path");
+    const api_key = document.getElementById("api_key");
+    const api_model = document.getElementById("api_model");
+    const api_provider = document.getElementById("api_provider");
+    const btnPresetOpenAi = document.getElementById("btnPresetOpenAi");
+    const btnPresetGemini = document.getElementById("btnPresetGemini");
+    const btnPresetClear = document.getElementById("btnPresetClear");
+    const providerHint = document.getElementById("providerHint");
+
+    const gc_scene_description = document.getElementById("gc_scene_description");
+    const gc_time_of_day = document.getElementById("gc_time_of_day");
+    const gc_weather_atmosphere = document.getElementById("gc_weather_atmosphere");
+    const lt_source = document.getElementById("lt_source");
+    const lt_direction = document.getElementById("lt_direction");
+    const lt_quality = document.getElementById("lt_quality");
+    const lt_color_temp = document.getElementById("lt_color_temp");
+    const cp_dominant = document.getElementById("cp_dominant");
+    const cp_accent = document.getElementById("cp_accent");
+    const cp_contrast = document.getElementById("cp_contrast");
+    const cd_camera_model = document.getElementById("cd_camera_model");
+    const cd_focal_length = document.getElementById("cd_focal_length");
+    const cd_aperture = document.getElementById("cd_aperture");
+    const cd_iso = document.getElementById("cd_iso");
+    const cd_shutter = document.getElementById("cd_shutter");
+    const cd_white_balance = document.getElementById("cd_white_balance");
+    const cd_flash_type = document.getElementById("cd_flash_type");
+    const cd_image_format = document.getElementById("cd_image_format");
+    const cd_color_profile = document.getElementById("cd_color_profile");
+    const comp_angle = document.getElementById("comp_angle");
+    const comp_framing = document.getElementById("comp_framing");
+    const comp_dof = document.getElementById("comp_dof");
+    const comp_focal_point = document.getElementById("comp_focal_point");
+    const sem_rel = document.getElementById("sem_rel");
+    const objects_json = document.getElementById("objects_json");
+
+    function setStatus(ok, msg, details) {
+      statusText.textContent = ok ? "JSON poprawny" : msg;
+      statusText.className = ok ? "val-ok" : "val-error";
+      statusDetails.textContent = details || "";
+    }
+
+    function updatePreview(obj) {
+      try {
+        const gc = obj.global_context || {};
+        const cp = obj.color_palette || {};
+        const cd = obj.camera_details || {};
+        const comp = obj.composition || {};
+        const objects = Array.isArray(obj.objects) ? obj.objects : [];
+
+        const firstObject = objects[0] || {};
+        const primaryLabel = firstObject.label || "(brak)";
+        const primaryCategory = firstObject.category || "";
+
+        const dominant = Array.isArray(cp.dominant_hex_estimates)
+          ? cp.dominant_hex_estimates.join(", ")
+          : "(brak)";
+        const accent = Array.isArray(cp.accent_colors)
+          ? cp.accent_colors.join(", ")
+          : "(brak)";
+
+        const rel = Array.isArray(obj.semantic_relationships)
+          ? obj.semantic_relationships
+          : [];
+
+        previewBox.innerHTML = "";
+
+        const blocks = [
+          {
+            title: "Global context",
+            rows: [
+              ["scene_description", gc.scene_description || "(brak)"],
+              ["time_of_day", gc.time_of_day || "(brak)"],
+              ["weather_atmosphere", gc.weather_atmosphere || "(brak)"],
+            ],
+          },
+          {
+            title: "Camera / Composition",
+            rows: [
+              ["camera_model", cd.camera_model || "(brak)"],
+              ["focal_length", cd.focal_length || "(brak)"],
+              ["aperture", cd.aperture || "(brak)"],
+              ["focal_point", comp.focal_point || "(brak)"],
+            ],
+          },
+          {
+            title: "Color palette",
+            rows: [
+              ["dominant_hex_estimates", dominant],
+              ["accent_colors", accent],
+              ["contrast_level", cp.contrast_level || "(brak)"],
+            ],
+          },
+          {
+            title: "Primary object",
+            rows: [
+              ["label", primaryLabel],
+              ["category", primaryCategory],
+              ["count(objects)", String(objects.length)],
+            ],
+          },
+          {
+            title: "Semantic relationships",
+            rows: rel.length
+              ? rel.slice(0, 4).map((r, i) => [String(i + 1), r])
+              : [["info", "(brak relacji)"]],
+          },
+        ];
+
+        for (const block of blocks) {
+          const titleEl = document.createElement("div");
+          titleEl.className = "preview-title";
+          titleEl.textContent = block.title;
+          previewBox.appendChild(titleEl);
+
+          for (const [k, v] of block.rows) {
+            const row = document.createElement("div");
+            row.className = "preview-row";
+
+            const keySpan = document.createElement("span");
+            keySpan.className = "key";
+            keySpan.textContent = k;
+
+            const valSpan = document.createElement("span");
+            valSpan.textContent = v;
+
+            row.appendChild(keySpan);
+            row.appendChild(valSpan);
+            previewBox.appendChild(row);
+          }
+
+          const spacer = document.createElement("div");
+          spacer.style.height = "6px";
+          previewBox.appendChild(spacer);
+        }
+      } catch (e) {
+        previewBox.innerHTML =
+          '<div class="preview-title">Błąd podczas generowania podglądu.</div>';
+      }
+    }
+
+    function parseCurrentJson() {
+      const raw = jsonInput.value;
+      try {
+        const parsed = JSON.parse(raw);
+        currentScene = parsed;
+        setStatus(true, "JSON poprawny", "Parsowanie zakończone sukcesem");
+        updatePreview(parsed);
+        return parsed;
+      } catch (e) {
+        setStatus(false, "Błąd JSON", e.message);
+        previewBox.innerHTML =
+          '<div class="preview-title">Nie można wygenerować podglądu - JSON jest niepoprawny.</div>';
+        throw e;
+      }
+    }
+
+    function syncJsonFromObject() {
+      if (!currentScene) return;
+      const pretty = JSON.stringify(currentScene, null, 2);
+      jsonInput.value = pretty;
+      try {
+        updatePreview(currentScene);
+        setStatus(true, "JSON poprawny", "Struktura zaktualizowana z formularza.");
+      } catch (e) {
+        setStatus(false, "Błąd JSON", "Podgląd nie został zaktualizowany.");
+      }
+    }
+
+    function fillFormFromObject(obj) {
+      const gc = obj.global_context || {};
+      const lt = (gc && gc.lighting) || {};
+      const cp = obj.color_palette || {};
+      const cd = obj.camera_details || {};
+      const comp = obj.composition || {};
+
+      gc_scene_description.value = gc.scene_description || "";
+      gc_time_of_day.value = gc.time_of_day || "";
+      gc_weather_atmosphere.value = gc.weather_atmosphere || "";
+
+      lt_source.value = lt.source || "";
+      lt_direction.value = lt.direction || "";
+      lt_quality.value = lt.quality || "";
+      lt_color_temp.value = lt.color_temp || "";
+
+      cp_dominant.value = Array.isArray(cp.dominant_hex_estimates)
+        ? cp.dominant_hex_estimates.join("\n")
+        : "";
+      cp_accent.value = Array.isArray(cp.accent_colors)
+        ? cp.accent_colors.join("\n")
+        : "";
+      cp_contrast.value = cp.contrast_level || "";
+
+      cd_camera_model.value = cd.camera_model || "";
+      cd_focal_length.value = cd.focal_length || "";
+      cd_aperture.value = cd.aperture || "";
+      cd_iso.value = cd.iso || "";
+      cd_shutter.value = cd.shutter_speed || "";
+      cd_white_balance.value = cd.white_balance || "";
+      cd_flash_type.value = cd.flash_type || "";
+      cd_image_format.value = cd.image_format || "";
+      cd_color_profile.value = cd.color_profile || "";
+
+      comp_angle.value = comp.camera_angle || "";
+      comp_framing.value = comp.framing || "";
+      comp_dof.value = comp.depth_of_field || "";
+      comp_focal_point.value = comp.focal_point || "";
+
+      const rel = Array.isArray(obj.semantic_relationships)
+        ? obj.semantic_relationships
+        : [];
+      sem_rel.value = rel.join("\n");
+
+      const objectsArr = Array.isArray(obj.objects) ? obj.objects : [];
+      objects_json.value = JSON.stringify(objectsArr, null, 2);
+    }
+
+    function updateObjectFromForm() {
+      if (!currentScene) currentScene = {};
+
+      if (!currentScene.global_context) currentScene.global_context = {};
+      if (!currentScene.global_context.lighting)
+        currentScene.global_context.lighting = {};
+      if (!currentScene.color_palette) currentScene.color_palette = {};
+      if (!currentScene.camera_details) currentScene.camera_details = {};
+      if (!currentScene.composition) currentScene.composition = {};
+
+      const gc = currentScene.global_context;
+      const lt = currentScene.global_context.lighting;
+      const cp = currentScene.color_palette;
+      const cd = currentScene.camera_details;
+      const comp = currentScene.composition;
+
+      gc.scene_description = gc_scene_description.value.trim();
+      gc.time_of_day = gc_time_of_day.value.trim();
+      gc.weather_atmosphere = gc_weather_atmosphere.value.trim();
+
+      lt.source = lt_source.value.trim();
+      lt.direction = lt_direction.value.trim();
+      lt.quality = lt_quality.value.trim();
+      lt.color_temp = lt_color_temp.value.trim();
+
+      const domLines = cp_dominant.value
+        .split(/\r?\n/)
+        .map((v) => v.trim())
+        .filter(Boolean);
+      const accLines = cp_accent.value
+        .split(/\r?\n/)
+        .map((v) => v.trim())
+        .filter(Boolean);
+      cp.dominant_hex_estimates = domLines;
+      cp.accent_colors = accLines;
+      cp.contrast_level = cp_contrast.value.trim();
+
+      cd.camera_model = cd_camera_model.value.trim();
+      cd.focal_length = cd_focal_length.value.trim();
+      cd.aperture = cd_aperture.value.trim();
+      cd.iso = cd_iso.value.trim();
+      cd.shutter_speed = cd_shutter.value.trim();
+      cd.white_balance = cd_white_balance.value.trim();
+      cd.flash_type = cd_flash_type.value.trim();
+      cd.image_format = cd_image_format.value.trim();
+      cd.color_profile = cd_color_profile.value.trim();
+
+      comp.camera_angle = comp_angle.value.trim();
+      comp.framing = comp_framing.value.trim();
+      comp.depth_of_field = comp_dof.value.trim();
+      comp.focal_point = comp_focal_point.value.trim();
+
+      const relLines = sem_rel.value
+        .split(/\r?\n/)
+        .map((v) => v.trim())
+        .filter(Boolean);
+      currentScene.semantic_relationships = relLines;
+
+      const rawObjects = objects_json.value.trim();
+      if (rawObjects) {
+        try {
+          const parsedObjects = JSON.parse(rawObjects);
+          if (Array.isArray(parsedObjects)) {
+            currentScene.objects = parsedObjects;
+          } else {
+            throw new Error("Sekcja objects musi być tablicą (JSON array)");
+          }
+        } catch (e) {
+          setStatus(
+            false,
+            "Błąd objects JSON",
+            "Sekcja objects nie została zaktualizowana: " + e.message
+          );
+        }
+      } else {
+        currentScene.objects = [];
+      }
+    }
+
+    const SCENE_SYSTEM_PROMPT = [
+      "You are a JSON-only assistant that generates structured scene descriptions for an image-generation engine.",
+      "Given a short natural language description of a scene, you MUST return exactly ONE JSON object and NOTHING else.",
+      "The JSON must have these top-level keys: global_context, color_palette, camera_details, composition, objects, text_ocr, semantic_relationships.",
+      "If a field is unknown, use empty strings or empty arrays.",
+      "Always output strictly valid JSON with double quotes and no comments. Do not wrap the JSON in Markdown.",
+    ].join("\n");
+
+    function isResponsesEndpoint(url) {
+      if (!url) return false;
+      try {
+        return /\/v1\/responses(\/)?(\?|$)/.test(url);
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function isGoogleApiUrl(url) {
+      if (!url) return false;
+      try {
+        return /generativelanguage\.googleapis\.com|gemini\.googleapis\.com/.test(url);
+      } catch (_) {
+        return false;
+      }
+    }
+
+    const PROVIDER_DEFAULTS = {
+      openai: {
+        base: "https://api.openai.com",
+        desc: "/v1/responses",
+        image: "",
+        model: "gpt-4o-mini",
+        descPlaceholder: "/v1/responses lub /v1/chat/completions",
+        imagePlaceholder: "(opcjonalnie)",
+        keyPlaceholder: "sk-...",
+      },
+      google: {
+        base: "https://generativelanguage.googleapis.com/v1beta",
+        desc: "",
+        image: "",
+        model: "gemini-1.5-flash",
+        descPlaceholder: "models/gemini-1.5-flash:generateContent",
+        imagePlaceholder: "(opcjonalnie)",
+        keyPlaceholder: "AIza...",
+      },
+    };
+
+    function getProviderDefaults(provider) {
+      if (provider === "google") return PROVIDER_DEFAULTS.google;
+      return PROVIDER_DEFAULTS.openai;
+    }
+
+    function isAbsoluteUrl(value) {
+      return /^https?:\/\//i.test(value || "");
+    }
+
+    function joinUrl(baseUrl, path) {
+      if (!path) return (baseUrl || "").replace(/\/+$/, "");
+      if (isAbsoluteUrl(path)) return path;
+      const b = (baseUrl || "").replace(/\/+$/, "");
+      const p = String(path).replace(/^\/+/, "");
+      return b + "/" + p;
+    }
+
+    function buildGeminiUrl(baseUrl, model, path) {
+      const base = (baseUrl || "").trim() || PROVIDER_DEFAULTS.google.base;
+      const normalizedBase = base.replace(/\/+$/, "");
+      if (path && isAbsoluteUrl(path)) return path;
+      if (path) return joinUrl(normalizedBase, path);
+      let modelName = model || PROVIDER_DEFAULTS.google.model;
+      if (!modelName.startsWith("models/")) {
+        modelName = "models/" + modelName;
+      }
+      if (/\/models$/i.test(normalizedBase)) {
+        return normalizedBase + "/" + modelName.replace(/^models\//, "") + ":generateContent";
+      }
+      return normalizedBase + "/" + modelName + ":generateContent";
+    }
+
+    function withGoogleKey(url, apiKey) {
+      if (!apiKey) return url;
+      if (/([?&])key=/.test(url)) return url;
+      const sep = url.includes("?") ? "&" : "?";
+      return url + sep + "key=" + encodeURIComponent(apiKey);
+    }
+
+    function updateProviderHint(provider) {
+      if (!providerHint) return;
+      if (provider === "google") {
+        providerHint.innerHTML =
+          'Gemini: base <code>https://generativelanguage.googleapis.com/v1beta</code> i endpoint <code>models/gemini-1.5-flash:generateContent</code>. Klucz dodawany jest jako <code>?key=</code>.';
+      } else {
+        providerHint.innerHTML =
+          'OpenAI: base <code>https://api.openai.com</code> i endpoint <code>/v1/responses</code> (zalecane) lub <code>/v1/chat/completions</code>.';
+      }
+    }
+
+    function applyProviderDefaults(provider, options) {
+      const defaults = getProviderDefaults(provider);
+      const force = options && options.force;
+
+      if (api_base_url && (force || !(api_base_url.value || "").trim())) {
+        api_base_url.value = defaults.base;
+      }
+      if (api_desc_path && (force || !(api_desc_path.value || "").trim())) {
+        api_desc_path.value = defaults.desc;
+      }
+      if (api_image_path && (force || !(api_image_path.value || "").trim())) {
+        api_image_path.value = defaults.image;
+      }
+      if (api_model && (force || !(api_model.value || "").trim())) {
+        api_model.value = defaults.model;
+      }
+
+      if (api_base_url && defaults.base) api_base_url.placeholder = defaults.base;
+      if (api_desc_path && defaults.descPlaceholder)
+        api_desc_path.placeholder = defaults.descPlaceholder;
+      if (api_image_path && defaults.imagePlaceholder)
+        api_image_path.placeholder = defaults.imagePlaceholder;
+      if (api_key && defaults.keyPlaceholder) api_key.placeholder = defaults.keyPlaceholder;
+
+      updateProviderHint(provider);
+    }
+
+    function getApiConfig() {
+      const provider = ((api_provider && api_provider.value) || "openai").trim();
+      const defaults = getProviderDefaults(provider);
+      const base = (api_base_url.value || "").trim() || defaults.base;
+      const desc = (api_desc_path.value || "").trim() || defaults.desc;
+      const image = (api_image_path.value || "").trim() || defaults.image;
+      const key = (api_key.value || "").trim();
+      const model = (api_model.value || "").trim() || defaults.model;
+
+      if (!key) throw new Error("Brak API KEY. Podaj klucz do modelu.");
+      const isGoogle = provider === "google" || isGoogleApiUrl(base);
+      let descUrl;
+      let imageUrl;
+
+      if (isGoogle) {
+        descUrl = buildGeminiUrl(base, model, desc);
+        imageUrl = image ? buildGeminiUrl(base, model, image) : descUrl;
+      } else {
+        if (!base) throw new Error("Brak adresu API. Uzupełnij sekcję AI API config.");
+        descUrl = joinUrl(base, desc || "");
+        imageUrl = image ? joinUrl(base, image) : descUrl;
+      }
+
+      return {
+        descUrl,
+        imageUrl,
+        apiKey: key,
+        model,
+        provider,
+        isGoogle,
+        useResponses: !isGoogle && isResponsesEndpoint(descUrl),
+      };
+    }
+
+    function saveApiConfigToStorage() {
+      try {
+        const cfg = {
+          base: api_base_url.value || "",
+          desc: api_desc_path.value || "",
+          image: api_image_path.value || "",
+          key: api_key.value || "",
+          model: api_model.value || "",
+          provider: api_provider ? api_provider.value || "" : "",
+        };
+        localStorage.setItem("scene_ai_api_config", JSON.stringify(cfg));
+      } catch (_) {}
+    }
+
+    function loadApiConfigFromStorage() {
+      let provider = "openai";
+      try {
+        const raw = localStorage.getItem("scene_ai_api_config");
+        if (!raw) {
+          provider = (api_provider && api_provider.value) || provider;
+          applyProviderDefaults(provider, { force: false });
+          return;
+        }
+        const cfg = JSON.parse(raw);
+        if (cfg && typeof cfg === "object") {
+          if (cfg.base) api_base_url.value = cfg.base;
+          if (cfg.desc) api_desc_path.value = cfg.desc;
+          if (cfg.image) api_image_path.value = cfg.image;
+          if (cfg.key) api_key.value = cfg.key;
+          if (cfg.model) api_model.value = cfg.model;
+          if (cfg.provider && api_provider) api_provider.value = cfg.provider;
+        }
+      } catch (_) {}
+      provider = (api_provider && api_provider.value) || provider;
+      applyProviderDefaults(provider, { force: false });
+    }
+
+    function clearApiConfig() {
+      if (api_base_url) api_base_url.value = "";
+      if (api_desc_path) api_desc_path.value = "";
+      if (api_image_path) api_image_path.value = "";
+      if (api_key) api_key.value = "";
+      if (api_model) api_model.value = "";
+      if (api_provider) api_provider.value = "openai";
+      try {
+        localStorage.removeItem("scene_ai_api_config");
+      } catch (_) {}
+      applyProviderDefaults("openai", { force: false });
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result || "";
+          const base64 = String(result).split(",")[1] || "";
+          resolve(base64);
+        };
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function extractJsonFromChatCompletions(data) {
+      const choice = data.choices && data.choices[0];
+      if (!choice || !choice.message) {
+        throw new Error("Brak danych w odpowiedzi Chat Completions.");
+      }
+      const content = choice.message.content;
+      if (typeof content === "string") return content;
+      if (Array.isArray(content) && content[0] && typeof content[0].text === "string") {
+        return content[0].text;
+      }
+      throw new Error("Nie udało się wyciągnąć tekstu z Chat Completions.");
+    }
+
+    function extractJsonFromResponsesApi(data) {
+      if (typeof data.output_text === "string" && data.output_text.trim()) {
+        return data.output_text;
+      }
+      if (Array.isArray(data.output)) {
+        const msg = data.output.find((o) => o && o.type === "message");
+        if (msg && Array.isArray(msg.content)) {
+          const textItem = msg.content.find(
+            (c) => c && (c.type === "output_text" || c.type === "text")
+          );
+          if (textItem) {
+            if (textItem.text && typeof textItem.text.content === "string") {
+              return textItem.text.content;
+            }
+            if (typeof textItem.text === "string") {
+              return textItem.text;
+            }
+          }
+        }
+      }
+      throw new Error("Nie udało się wyciągnąć JSON z odpowiedzi Responses API.");
+    }
+
+    function extractJsonFromGemini(data) {
+      if (!data || !Array.isArray(data.candidates) || !data.candidates[0]) {
+        throw new Error("Brak kandydatów w odpowiedzi Gemini.");
+      }
+      const c = data.candidates[0];
+      if (!c.content || !Array.isArray(c.content.parts)) {
+        throw new Error("Brak content.parts w odpowiedzi Gemini.");
+      }
+      const part = c.content.parts.find((p) => typeof p.text === "string" && p.text.trim());
+      if (!part) {
+        throw new Error("Nie znaleziono tekstu w odpowiedzi Gemini.");
+      }
+      return part.text;
+    }
+
+    function parseJsonSafely(rawText) {
+      const text = String(rawText || "").trim();
+      if (!text) {
+        throw new Error("Odpowiedź modelu jest pusta.");
+      }
+      try {
+        return JSON.parse(text);
+      } catch (_) {
+        const start = text.indexOf("{");
+        const end = text.lastIndexOf("}");
+        if (start !== -1 && end !== -1 && end > start) {
+          return JSON.parse(text.slice(start, end + 1));
+        }
+      }
+      throw new Error("Nie udało się sparsować JSON z odpowiedzi AI.");
+    }
+
+    async function callSceneApiFromPrompt(promptText) {
+      const cfg = getApiConfig();
+      const useResponses = cfg.useResponses;
+      const isGoogle = cfg.isGoogle;
+      let rawText;
+
+      if (isGoogle) {
+        const url = withGoogleKey(cfg.descUrl, cfg.apiKey);
+        const body = {
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text:
+                    SCENE_SYSTEM_PROMPT +
+                    "\n\nUser scene description:\n" +
+                    (promptText || ""),
+                },
+              ],
+            },
+          ],
+          generationConfig: { responseMimeType: "application/json" },
+        };
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          let extra = "";
+          try {
+            extra = await res.text();
+          } catch (_) {}
+          throw new Error("API error " + res.status + (extra ? ": " + extra : ""));
+        }
+
+        const data = await res.json();
+        rawText = extractJsonFromGemini(data);
+      } else {
+        const modelName = cfg.model || "gpt-4o-mini";
+        let body;
+
+        if (useResponses) {
+          body = {
+            model: modelName,
+            input: [
+              { role: "system", content: SCENE_SYSTEM_PROMPT },
+              { role: "user", content: promptText || "" },
+            ],
+            text: { format: { type: "json_object" } },
+          };
+        } else {
+          body = {
+            model: modelName,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: SCENE_SYSTEM_PROMPT },
+              { role: "user", content: promptText || "" },
+            ],
+          };
+        }
+
+        const res = await fetch(cfg.descUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + cfg.apiKey,
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          let extra = "";
+          try {
+            extra = await res.text();
+          } catch (_) {}
+          throw new Error("API error " + res.status + (extra ? ": " + extra : ""));
+        }
+
+        const data = await res.json();
+        const content = useResponses
+          ? extractJsonFromResponsesApi(data)
+          : extractJsonFromChatCompletions(data);
+        rawText = content;
+      }
+
+      return parseJsonSafely(rawText);
+    }
+
+    async function callSceneApiFromImage(file, promptText) {
+      const cfg = getApiConfig();
+      const useResponses = cfg.useResponses;
+      const isGoogle = cfg.isGoogle;
+      const image_base64 = await fileToBase64(file);
+
+      let rawText;
+
+      if (isGoogle) {
+        const baseUrl = cfg.imageUrl || cfg.descUrl;
+        const url = withGoogleKey(baseUrl, cfg.apiKey);
+        const textPrompt =
+          SCENE_SYSTEM_PROMPT +
+          "\n\nUser also provides an image. Infer additional details from that if possible.\n\n" +
+          (promptText || "");
+
+        const body = {
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: textPrompt,
+                },
+                {
+                  inline_data: {
+                    mime_type: file.type || "image/jpeg",
+                    data: image_base64,
+                  },
+                },
+              ],
+            },
+          ],
+          generationConfig: { responseMimeType: "application/json" },
+        };
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          let extra = "";
+          try {
+            extra = await res.text();
+          } catch (_) {}
+          throw new Error("API error " + res.status + (extra ? ": " + extra : ""));
+        }
+
+        const data = await res.json();
+        rawText = extractJsonFromGemini(data);
+      } else {
+        const modelName = cfg.model || "gpt-4o-mini";
+        const userPrompt = [
+          (promptText || "").trim(),
+          "Image (base64, truncated):",
+          image_base64.slice(0, 1000),
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+        let body;
+
+        if (useResponses) {
+          body = {
+            model: modelName,
+            input: [
+              {
+                role: "system",
+                content:
+                  SCENE_SYSTEM_PROMPT +
+                  "\n\nUser also provides an image (base64 in the prompt). Infer additional details from that if possible.",
+              },
+              { role: "user", content: userPrompt },
+            ],
+            text: { format: { type: "json_object" } },
+          };
+        } else {
+          body = {
+            model: modelName,
+            response_format: { type: "json_object" },
+            messages: [
+              {
+                role: "system",
+                content:
+                  SCENE_SYSTEM_PROMPT +
+                  "\n\nUser also provides an image (base64 in the prompt). Infer additional details from that if possible.",
+              },
+              { role: "user", content: userPrompt },
+            ],
+          };
+        }
+
+        const baseUrl = cfg.imageUrl || cfg.descUrl;
+        const res = await fetch(baseUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + cfg.apiKey,
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          let extra = "";
+          try {
+            extra = await res.text();
+          } catch (_) {}
+          throw new Error("API error " + res.status + (extra ? ": " + extra : ""));
+        }
+
+        const data = await res.json();
+        const content = useResponses
+          ? extractJsonFromResponsesApi(data)
+          : extractJsonFromChatCompletions(data);
+        rawText = content;
+      }
+
+      return parseJsonSafely(rawText);
+    }
+
+    // Proste runtime-testy - nie dotykaj JSON-a sceny
+    (function runtimeTests() {
+      const sample = "#AAA\n#BBB\n#CCC";
+      const parts = sample.split(/\r?\n/).map((v) => v.trim()).filter(Boolean);
+      console.assert(parts.length === 3, "Test newline split: 3 elementy");
+      const joined = parts.join("\n");
+      console.assert(joined.includes("\n"), "Test join: brak znaku \n");
+      const empty = "";
+      const emptyParts = empty.split(/\r?\n/).filter(Boolean);
+      console.assert(emptyParts.length === 0, "Test pustego stringa: 0 elementów");
+      // Dodatkowy test: JSON stringify / parse
+      const j = JSON.stringify({ a: 1 });
+      const p = JSON.parse(j);
+      console.assert(p.a === 1, "Test JSON parse/stringify");
+    })();
+
+    // Zdarzenia formularza
+    btnApplyForm.addEventListener("click", () => {
+      try {
+        updateObjectFromForm();
+        syncJsonFromObject();
+      } catch (e) {
+        setStatus(false, "Błąd formularza", e.message);
+      }
+    });
+
+    btnLoadFormFromJson.addEventListener("click", () => {
+      try {
+        const parsed = parseCurrentJson();
+        currentScene = parsed;
+        fillFormFromObject(parsed);
+        setStatus(true, "JSON poprawny", "Formularz uzupełniony na podstawie JSON.");
+      } catch (e) {}
+    });
+
+    if (btnPresetOpenAi) {
+      btnPresetOpenAi.addEventListener("click", () => {
+        if (api_provider) api_provider.value = "openai";
+        applyProviderDefaults("openai", { force: true });
+        saveApiConfigToStorage();
+      });
+    }
+
+    if (btnPresetGemini) {
+      btnPresetGemini.addEventListener("click", () => {
+        if (api_provider) api_provider.value = "google";
+        applyProviderDefaults("google", { force: true });
+        saveApiConfigToStorage();
+      });
+    }
+
+    if (btnPresetClear) {
+      btnPresetClear.addEventListener("click", () => {
+        clearApiConfig();
+        saveApiConfigToStorage();
+      });
+    }
+
+    if (api_provider) {
+      api_provider.addEventListener("change", () => {
+        const provider = api_provider.value || "openai";
+        applyProviderDefaults(provider, { force: false });
+        saveApiConfigToStorage();
+      });
+    }
+
+    btnAiFromPrompt.addEventListener("click", async () => {
+      const text = ai_prompt.value.trim();
+      if (!text) {
+        setStatus(false, "Brak opisu", "Podaj krótki opis sceny dla AI.");
+        return;
+      }
+
+      gc_scene_description.value = text;
+      try {
+        updateObjectFromForm();
+        syncJsonFromObject();
+      } catch (_) {}
+
+      const hasKey = (api_key.value || "").trim() !== "";
+      if (!hasKey) {
+        setStatus(
+          false,
+          "Brak API",
+          "Opis sceny został przepisany z pola AI, ale konfiguracja API (API KEY) jest niekompletna."
+        );
+        return;
+      }
+
+      btnAiFromPrompt.disabled = true;
+      btnAiFromImage.disabled = true;
+      setStatus(true, "Wysyłanie do AI...", "Czekam na odpowiedź z endpointu dla opisu sceny");
+
+      try {
+        const generated = await callSceneApiFromPrompt(text);
+        currentScene = generated;
+        syncJsonFromObject();
+        fillFormFromObject(generated);
+        setStatus(true, "JSON poprawny", "Scena wygenerowana przez model AI (API).");
+      } catch (e) {
+        setStatus(false, "Błąd AI (API)", e.message || String(e));
+      } finally {
+        btnAiFromPrompt.disabled = false;
+        btnAiFromImage.disabled = false;
+      }
+    });
+
+    btnAiFromImage.addEventListener("click", async () => {
+      const file = ai_image.files && ai_image.files[0];
+      const text = ai_prompt.value.trim();
+      if (!file) {
+        setStatus(false, "Brak pliku", "Wybierz plik obrazu, aby skorzystać z tej opcji.");
+        return;
+      }
+
+      const hasKey = (api_key.value || "").trim() !== "";
+      if (!hasKey) {
+        setStatus(
+          false,
+          "Brak API",
+          "Konfiguracja API (API KEY) jest niekompletna."
+        );
+        return;
+      }
+
+      btnAiFromPrompt.disabled = true;
+      btnAiFromImage.disabled = true;
+      setStatus(true, "Wysyłanie do AI...", "Czekam na odpowiedź z endpointu dla sceny ze zdjęcia");
+
+      try {
+        const generated = await callSceneApiFromImage(file, text);
+        currentScene = generated;
+        syncJsonFromObject();
+        fillFormFromObject(generated);
+        setStatus(true, "JSON poprawny", "Scena wygenerowana przez model AI (API).");
+      } catch (e) {
+        setStatus(false, "Błąd AI (API)", e.message || String(e));
+      } finally {
+        btnAiFromPrompt.disabled = false;
+        btnAiFromImage.disabled = false;
+      }
+    });
+
+    btnFormat.addEventListener("click", () => {
+      try {
+        const parsed = parseCurrentJson();
+        jsonInput.value = JSON.stringify(parsed, null, 2);
+        setStatus(true, "JSON poprawny", "Sformatowano wcięcia.");
+      } catch (e) {}
+    });
+
+    btnValidate.addEventListener("click", () => {
+      try {
+        parseCurrentJson();
+      } catch (e) {}
+    });
+
+    btnReset.addEventListener("click", () => {
+      jsonInput.value = JSON.stringify(templateObj, null, 2);
+      try {
+        const parsed = JSON.parse(jsonInput.value);
+        currentScene = parsed;
+        fillFormFromObject(parsed);
+        updatePreview(parsed);
+        setStatus(true, "JSON poprawny", "Przywrócono szablon.");
+      } catch (e) {
+        setStatus(false, "Błąd JSON", "Szablon nie został sparsowany.");
+      }
+    });
+
+    btnDownload.addEventListener("click", () => {
+      try {
+        const parsed = parseCurrentJson();
+        const pretty = JSON.stringify(parsed, null, 2);
+        const blob = new Blob([pretty], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "scene.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {}
+    });
+
+    (function init() {
+      loadApiConfigFromStorage();
+
+      const pretty = JSON.stringify(templateObj, null, 2);
+      jsonInput.value = pretty;
+      try {
+        const parsed = JSON.parse(pretty);
+        currentScene = parsed;
+        fillFormFromObject(parsed);
+        updatePreview(parsed);
+        setStatus(true, "JSON poprawny", "Szablon został załadowany.");
+      } catch (e) {
+        setStatus(false, "Błąd JSON", "Nie udało się sparsować szablonu.");
+      }
+
+      [
+        api_base_url,
+        api_desc_path,
+        api_image_path,
+        api_key,
+        api_model,
+      ].forEach((el) => {
+        if (!el) return;
+        el.addEventListener("change", saveApiConfigToStorage);
+        el.addEventListener("blur", saveApiConfigToStorage);
+      });
+    })();
+  </script>
+</body>
+</html>
