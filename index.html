@@ -1263,6 +1263,11 @@
       return url + sep + "key=" + encodeURIComponent(apiKey);
     }
 
+    function downgradeGoogleUrlToV1Beta(url) {
+      if (!url) return url;
+      return url.replace(/\/v1(\/|\?|$)/i, "/v1beta$1");
+    }
+
     function updateProviderHint(provider) {
       if (!providerHint) return;
       if (provider === "google") {
@@ -1353,7 +1358,13 @@
       modelsOutput.textContent = "Pobieram listę modeli...";
       if (modelsPanel) modelsPanel.open = true;
       try {
-        const res = await fetch(url, { method: "GET" });
+        let res = await fetch(url, { method: "GET" });
+        if (!res.ok && res.status === 404) {
+          const fallbackUrl = downgradeGoogleUrlToV1Beta(url);
+          if (fallbackUrl !== url) {
+            res = await fetch(fallbackUrl, { method: "GET" });
+          }
+        }
         if (!res.ok) {
           let extra = "";
           try {
@@ -1581,13 +1592,26 @@
           ],
         };
 
-        const res = await fetch(url, {
+        let res = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(body),
         });
+
+        if (!res.ok && res.status === 404) {
+          const fallbackUrl = downgradeGoogleUrlToV1Beta(url);
+          if (fallbackUrl !== url) {
+            res = await fetch(fallbackUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(body),
+            });
+          }
+        }
 
         if (!res.ok) {
           let extra = "";
@@ -1685,13 +1709,26 @@
           ],
         };
 
-        const res = await fetch(url, {
+        let res = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(body),
         });
+
+        if (!res.ok && res.status === 404) {
+          const fallbackUrl = downgradeGoogleUrlToV1Beta(url);
+          if (fallbackUrl !== url) {
+            res = await fetch(fallbackUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(body),
+            });
+          }
+        }
 
         if (!res.ok) {
           let extra = "";
