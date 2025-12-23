@@ -1161,6 +1161,7 @@
       }
     }
 
+    const LEGACY_GOOGLE_BASE = "https://generativelanguage.googleapis.com/v1beta";
     const PROVIDER_DEFAULTS = {
       openai: {
         base: "https://api.openai.com",
@@ -1172,7 +1173,7 @@
         keyPlaceholder: "sk-...",
       },
       google: {
-        base: "https://generativelanguage.googleapis.com/v1beta",
+        base: "https://generativelanguage.googleapis.com/v1",
         desc: "",
         image: "",
         model: "gemini-1.5-flash",
@@ -1185,6 +1186,10 @@
     function getProviderDefaults(provider) {
       if (provider === "google") return PROVIDER_DEFAULTS.google;
       return PROVIDER_DEFAULTS.openai;
+    }
+
+    function normalizeUrl(url) {
+      return (url || "").trim().replace(/\/+$/, "");
     }
 
     function isAbsoluteUrl(value) {
@@ -1225,7 +1230,7 @@
       if (!providerHint) return;
       if (provider === "google") {
         providerHint.innerHTML =
-          'Gemini: base <code>https://generativelanguage.googleapis.com/v1beta</code> i endpoint <code>models/gemini-1.5-flash:generateContent</code>. Klucz dodawany jest jako <code>?key=</code>.';
+          'Gemini: base <code>https://generativelanguage.googleapis.com/v1</code> i endpoint <code>models/gemini-1.5-flash:generateContent</code>. Klucz dodawany jest jako <code>?key=</code>. Jeśli dostajesz 404, spróbuj <code>gemini-1.5-flash-001</code> lub base <code>/v1beta</code>.';
       } else {
         providerHint.innerHTML =
           'OpenAI: base <code>https://api.openai.com</code> i endpoint <code>/v1/responses</code> (zalecane) lub <code>/v1/chat/completions</code>.';
@@ -1327,6 +1332,12 @@
         }
       } catch (_) {}
       provider = (api_provider && api_provider.value) || provider;
+      if (provider === "google") {
+        const base = normalizeUrl(api_base_url && api_base_url.value);
+        if (base === LEGACY_GOOGLE_BASE) {
+          api_base_url.value = PROVIDER_DEFAULTS.google.base;
+        }
+      }
       applyProviderDefaults(provider, { force: false });
     }
 
