@@ -1226,18 +1226,6 @@
       return url + sep + "key=" + encodeURIComponent(apiKey);
     }
 
-    function getGoogleGenerationConfig(url) {
-      const value = String(url || "").toLowerCase();
-      if (!value) return null;
-      if (value.includes("/v1beta/") || value.includes("/v1beta")) {
-        return { responseMimeType: "application/json" };
-      }
-      if (value.includes("/v1/") || value.includes("/v1")) {
-        return { response_mime_type: "application/json" };
-      }
-      return null;
-    }
-
     function updateProviderHint(provider) {
       if (!providerHint) return;
       if (provider === "google") {
@@ -1455,7 +1443,6 @@
 
       if (isGoogle) {
         const url = withGoogleKey(cfg.descUrl, cfg.apiKey);
-        const generationConfig = getGoogleGenerationConfig(cfg.descUrl);
         const body = {
           contents: [
             {
@@ -1471,7 +1458,6 @@
             },
           ],
         };
-        if (generationConfig) body.generationConfig = generationConfig;
 
         const res = await fetch(url, {
           method: "POST",
@@ -1558,7 +1544,6 @@
           "\n\nUser also provides an image. Infer additional details from that if possible.\n\n" +
           (promptText || "");
 
-        const generationConfig = getGoogleGenerationConfig(baseUrl);
         const body = {
           contents: [
             {
@@ -1577,7 +1562,6 @@
             },
           ],
         };
-        if (generationConfig) body.generationConfig = generationConfig;
 
         const res = await fetch(url, {
           method: "POST",
